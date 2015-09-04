@@ -28,6 +28,7 @@ function image_field_caption_image_formatter($variables) {
       'image' => $image,
       'caption' => check_markup($variables['item']['image_field_caption']['value'], $variables['item']['image_field_caption']['format']),
       'source' => $variables['item']['image_field_source']['value'],
+	  'title' => $variables['item']['image_field_title']['value'],
     ));
   }
   else {
@@ -42,7 +43,7 @@ function image_field_caption_theme($existing, $type, $theme, $path) {
   return array(
     'image_field_caption' => array(
       'template' => 'image_field_caption',
-      'variables' => array('image' => NULL, 'caption' => NULL, 'source' => NULL),
+      'variables' => array('image' => NULL, 'caption' => NULL, 'source' => NULL, 'title' => NULL),
     ),
   );
 }
@@ -97,7 +98,7 @@ function image_field_caption_field_instance_settings_form($field, $instance) {
     '#title' => t('Enable Description'),
     '#default_value' => $instance['settings']['image_field_caption'],
     '#description' => t('Adds an extra text area for captions on image fields.'),
-    '#weight' => 12,
+    '#weight' => 13,
   );
   
     //add checkbox enabled source **************************************************************************
@@ -106,7 +107,16 @@ function image_field_caption_field_instance_settings_form($field, $instance) {
       '#title' => t('Enable Source'),
       '#default_value' => $instance['settings']['image_field_source'],
       '#description' => t('Adds an extra text field for source on image fields.'),
-      '#weight' => 13,
+      '#weight' => 14,
+  );
+  
+  //add checkbox enabled source **************************************************************************
+  $form['image_field_title'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Enable Title image'),
+      '#default_value' => $instance['settings']['image_field_title'],
+      '#description' => t('Adds an extra text field for title on image fields.'),
+      '#weight' => 12,
   );
 
   return $form;
@@ -132,21 +142,30 @@ function image_field_caption_field_widget_form_alter(&$element, &$form_state, $c
  */
 function image_field_caption_widget_process($element, &$form_state, $form) {
   $item = $element['#value'];
-
+  
+  $element['image_field_title'] = array(
+      //'#title' => t('Title'),
+      '#type' => 'textfield',
+      '#default_value' => isset($item['image_field_title']) ? $item['image_field_title'] : '',
+	  '#attributes' => array('placeholder' => variable_get('tips_article_titlecol', 'Enter title')),
+      '#access' => (bool) $item['fid'],
+  );
   // Add the additional alt and title fields.
   $element['image_field_caption'] = array(
-    '#title' => t('Caption'),
+    //'#title' => t('Caption'),
     '#type' => 'text_format',
     '#default_value' => isset($item['image_field_caption']) ? $item['image_field_caption']['value'] : '',
     '#access' => (bool) $item['fid'],
     '#format' => isset($item['image_field_caption']['format']) ? $item['image_field_caption']['format'] : NULL,
+	'#attributes' => array('placeholder' => variable_get('tipss_article_descriptioncol', 'Enter description')),
   );
 
   $element['image_field_source'] = array(
-      '#title' => t('Source'),
+      //'#title' => t('Source'),
       '#type' => 'textfield',
       '#default_value' => isset($item['image_field_source']) ? $item['image_field_source'] : '',
       '#access' => (bool) $item['fid'],
+	  '#attributes' => array('placeholder' => variable_get('tipss_article_sourcecol', 'Enter link source')),
   );
 
   return $element;
@@ -214,7 +233,7 @@ function image_field_caption_field_attach_update($entity_type, $entity) {
 
     // Prepare the multi-insert query.
     $do_insert = FALSE;
-    $columns = array('field_name', 'entity_type', 'entity_id', 'revision_id', 'bundle', 'delta', 'language', 'caption', 'caption_format', 'source');
+    $columns = array('field_name', 'entity_type', 'entity_id', 'revision_id', 'bundle', 'delta', 'language', 'caption', 'caption_format', 'source', 'title');
     $query = db_insert($table_name)->fields($columns);
     $revision_query = db_insert($revision_name)->fields($columns);
 
@@ -236,6 +255,7 @@ function image_field_caption_field_attach_update($entity_type, $entity) {
           'caption' => $item['image_field_caption']['value'],
           'caption_format' => $item['image_field_caption']['format'],
           'source' => $item['image_field_source'],
+		  'title' => $item['image_field_title'],
         );
         $query->values($record);
         if (isset($vid)) {
@@ -287,11 +307,13 @@ function image_field_caption_field_attach_load($entity_type, $entities, $age, $o
       $item['image_field_caption']['value'] = $row->caption;
       $item['image_field_caption']['format'] = $row->caption_format;
       $item['image_field_source']['value'] = $row->source;
+	  $item['image_field_title']['value'] = $row->title;
 
       // Add the item to the field values for the entity.
       $entities[$row->entity_id]->{$row->field_name}[$row->language][$row->delta]['image_field_caption']['value'] = $row->caption;
       $entities[$row->entity_id]->{$row->field_name}[$row->language][$row->delta]['image_field_caption']['format'] = $row->caption_format;
       $entities[$row->entity_id]->{$row->field_name}[$row->language][$row->delta]['image_field_source']['value'] = $row->source;
+	  $entities[$row->entity_id]->{$row->field_name}[$row->language][$row->delta]['image_field_title']['value'] = $row->title;
     }
   }
 }
